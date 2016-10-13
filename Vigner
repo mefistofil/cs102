@@ -1,0 +1,76 @@
+def delta(a):
+    if ord(a) >= ord('a'):
+        return ord(a) - ord('a')
+    else:
+        return ord(a) - ord('A')
+
+
+def adding(a, b):
+    b = delta(b)
+    if ord(a) >= ord('a'):
+        return chr((ord(a) - ord('a') + b) % 26 + ord('a'))
+    else:
+        return chr((ord(a) - ord('A') + b) % 26 + ord('A'))
+
+
+def delete(a, b):
+    b = delta(b)
+    if ord(a) >= ord('a'):
+        a = ord(a) - ord('a')
+        b = a - b
+        if b < 0:
+            b += 26
+        return chr(b + ord('a'))
+    a = ord(a) - ord('A')
+    b = a - b
+    if b < 0:
+        b += 26
+    return chr(b + ord('A'))
+
+
+def encrypt_vigenere(plaintext, keyword):
+    """
+    Encrypts plaintext using a Vigenere cipher.
+    >>> encrypt_vigenere("PYTHON", "A")
+    'PYTHON'
+    >>> encrypt_vigenere("python", "a")
+    'python'
+    >>> encrypt_vigenere("ATTACKATDAWN", "LEMON")
+    'LXFOPVEFRNHR'
+    """
+    m = len(keyword)
+    rez = ''
+    x = 1
+    for i, qqq in enumerate(plaintext):
+        if x == 1:
+            rez += adding(plaintext[i], keyword[i % m])
+        else:
+            rez += delete(plaintext[i], keyword[i % m])
+    return rez
+
+
+def decrypt_vigenere(ciphertext, keyword):
+    """
+    Decrypts a ciphertext using a Vigenere cipher.
+    >>> decrypt_vigenere("PYTHON", "A")
+    'PYTHON'
+    >>> decrypt_vigenere("python", "a")
+    'python'
+    >>> decrypt_vigenere("LXFOPVEFRNHR", "LEMON")
+    'ATTACKATDAWN'
+    """
+    m = len(keyword)
+    rez = ''
+    x = 0
+    for i, qqq in enumerate(ciphertext):
+        if x == 1:
+            rez += adding(ciphertext[i], keyword[i % m])
+        else:
+            rez += delete(ciphertext[i], keyword[i % m])
+    return rez
+"""print(encrypt_vigenere("PYTHON", "A"))
+print(encrypt_vigenere("python", "a"))
+print(encrypt_vigenere("ATTACKATDAWN", "LEMON"))
+print(decrypt_vigenere("PYTHON", "A"))
+print(decrypt_vigenere("python", "a"))
+print(decrypt_vigenere("LXFOPVEFRNHR", "LEMON"))"""
