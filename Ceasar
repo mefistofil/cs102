@@ -1,0 +1,55 @@
+def encrypt_caesar(plaintext):
+    """
+    Encrypts plaintext using a Caesar cipher.
+
+    >>> encrypt_caesar("PYTHON")
+    'SBWKRQ'
+    >>> encrypt_caesar("python")
+    'sbwkrq'
+    >>> encrypt_caesar("")
+    ''
+    """
+    ciphertext = ""
+    for i in plaintext:
+        if i >= "a":
+            x = (ord(i) - ord("a") + 3) % 26 + ord("a")
+            x = chr(x)
+            ciphertext += x
+        elif i >= "A":
+            x = (ord(i) - ord("A") + 3) % 26 + ord("A")
+            x = chr(x)
+            ciphertext += x
+
+    return ciphertext
+
+
+def decrypt_caesar(ciphertext):
+    """
+    Decrypts a ciphertext using a Caesar cipher.
+
+    >>> decrypt_caesar("SBWKRQ")
+    'PYTHON'
+    >>> decrypt_caesar("sbwkrq")
+    'python'
+    >>> decrypt_caesar("")
+    ''
+    """
+    plaintext = ""
+    for i in ciphertext:
+        if i >= "a":
+            x = (ord(i) - ord("a") + 23) % 26 + ord("a")
+            x = chr(x)
+            plaintext += x
+        elif i >= "A":
+            x = (ord(i) - ord("A") + 23) % 26 + ord("A")
+            x = chr(x)
+            plaintext += x
+
+    return plaintext
+
+print(encrypt_caesar("PYTHON"))
+print(encrypt_caesar("python"))
+print(encrypt_caesar(""))
+print(decrypt_caesar("SBWKRQ"))
+print(decrypt_caesar("sbwkrq"))
+print(decrypt_caesar(""))
