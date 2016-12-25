@@ -1,0 +1,232 @@
+import config
+import telebot
+import requests
+# import time
+# from datetime import *
+import datetime
+
+
+bot = telebot.TeleBot(config.token)
+
+
+# @bot.message_handler(content_types=["text"])
+# def repeat_all_messages(message): # Название функции не играет никакой роли, в принципе
+#     bot.send_message(message.chat.id, message.text)
+#
+#
+@bot.message_handler(commands = ['start', 'старт', 'справка', 'hello', 'привет'])
+def start(message):
+    mes = message.text.split()
+    bot.send_message(message.chat.id, "Привет, я бот !\n"
+                                    "Если ты студент ИТМО, то я могу подогнать тебе расписон бесплатно)) Я принимаю следующие команды:\n"
+                                    "/пн - понедельник\n"
+                                    "/вт - вторник\n"
+                                    "/ср - среда\n"
+                                    "/чт - четверг\n"
+                                    "/пт - пятница\n"
+                                    "/сб - суббота\n"
+                                    "/all - вся неделя\n"
+                                    "/завтра - рассписание на завтра\n"
+                                    "/сегодня - рассписание на сегодня\n"
+                                    "/бп - ближайшая пара\n"
+                                    "Если ты не студент ИТМО, то расслабь булочки и не парься :)")
+
+def get_page(group, week):
+    if week:
+        week = str(week) + '/'
+    url = '{domain}/{group}/{week}raspisanie_zanyatiy_{group}.htm'.format(
+        domain = config.domain,
+        week = week,
+        group = group)
+    response = requests.get(url)
+    web_page = response.text
+    return web_page
+
+
+from bs4 import BeautifulSoup
+
+
+def get_schedule(web_page, day):
+    soup = BeautifulSoup(web_page, "html5lib")
+
+    # Получаем таблицу с расписанием на понедельник
+    schedule_table = soup.find("table", attrs={"id": "{}day".format(day)})
+
+    # Время проведения занятий
+    times_list = schedule_table.find_all("td", attrs={"class": "time"})
+    times_list = [time.span.text for time in times_list]
+
+    # Место проведения занятий
+    locations_list = schedule_table.find_all("td", attrs={"class": "room"})
+    locations_list = [room.dd.text + ", " + room.span.text for room in locations_list]
+
+    # Название дисциплин и имена преподавателей
+    lessons_list = schedule_table.find_all("td", attrs={"class": "lesson"})
+    lessons_list = [lesson.text.split('\n') for lesson in lessons_list]
+    lessons_list = [' '.join([info for info in lesson_info if info]) for lesson_info in lessons_list]
+
+    # place_list = schedule_table.find_all("td", attrs={"class": "room"})
+    # place_list = [room.text for place in place_list]
+    return times_list, locations_list, lessons_list
+
+
+# Узнаёт сегодняшний день и ретёрнит его в 2 буквах.
+def itime():
+    import time
+    wdays = ('Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс')
+    itoday = wdays[time.localtime().tm_wday]
+    return itoday
+
+
+# Функция, которая получает указанный в аргументах день (производная от изначальной понедельника)
+def get_day(message, numb):
+    week = '2'
+    group = 'M3110'
+    _ = message.text.split()
+    web_page = get_page(group, week)
+    times_lst, locations_lst, lessons_lst = get_schedule(web_page, numb)
+
+    resp = ''
+    for time, location, lession in zip(times_lst, locations_lst, lessons_lst):
+        resp += '<b>{}</b>, {}, {}\n'.format(time, location, lession)
+
+    bot.send_message(message.chat.id, resp, parse_mode = 'HTML')
+
+
+# Сама программа
+# РАБОТАЮЩЕЕ РАСПИСАНИЕ НА ЛЮБОЙ ДЕНЬ НЕДЕЛИ 
+@bot.message_handler(commands = ['пн','понедельник','mon','monday','пон'])
+def p(message):
+    get_day(message, 1)
+@bot.message_handler(commands = ['вт'])
+def p2(message):
+    get_day(message, 2)
+@bot.message_handler(commands = ['ср'])
+def p3(message):
+    get_day(message, 3)
+@bot.message_handler(commands = ['чт'])
+def p4(message):
+    get_day(message, 4)
+@bot.message_handler(commands = ['пт'])
+def p5(message):
+    get_day(message, 5)
+@bot.message_handler(commands = ['сб'])
+def p6(message):
+    get_day(message, 6)
+
+
+ # вся неделя   
+@bot.message_handler(commands = ['all'])
+def get_all_week(message):
+    i = 1
+    while i != 7:
+        if i != 7:
+            get_day(message, i)
+            i += 1
+        else:
+            pass
+
+
+# рассписание на завтра
+@bot.message_handler(commands = ['tommorow','завтра','t'])
+def get_tommorow(message):
+    my_date = datetime.date.today()
+    today = my_date.isoweekday()
+    if 1 == today:
+        get_day(message, 2)
+    elif 2 == today:
+        get_day(message, 3)
+    if 3 == today:
+        get_day(message, 4)
+    elif 4 == today:
+        get_day(message, 5)
+    if 5 == today:
+        get_day(message, 6)
+    elif 6 == today:
+        bot.send_message(message.chat.id, "Выдохни, завтра выходной. \n"
+                                                        "Держи рассписание на понедельник, на всякий случай!")
+        get_day(message, 1)
+    else:
+        get_day(message, 1)
+
+
+#Рассписание на сегодня
+@bot.message_handler(commands = ['today','сегодня','now'])
+def get_tommorow(message):
+    today = itime()
+    if 'Пн' in today:
+        get_day(message, 1)
+    elif 'Вт' in today:
+        get_day(message, 2)
+    if 'Ср' in today:
+        get_day(message, 3)
+    elif 'Чт' in today:
+        get_day(message, 4)
+    if 'Пт' in today:
+        get_day(message, 5) 
+    elif 'Сб' in today:
+        get_day(message, 6)
+    if 'Вс' in today:
+        bot.send_message(message.chat.id, "Сегодня у тебя выходной - самое время полениться)))\n"
+                                            "Именно поэтому я не скину тебе рассписание на завтра:)\n"
+                                            "Хочешь узнать рассписание ? Ты знаешь как меня об этом попросить)")
+    else:
+        pass
+
+
+# Ближайшая пара
+
+
+@bot.message_handler(commands = ['бп', 'near_lesson', 'ближайшая', 'следующая'])
+def get_near(message): 
+    # import datetime
+    sunday = False
+    a = 0
+    my_date = datetime.date.today()
+    my_time = datetime.time()
+    my_time = str(my_time)
+    today = my_date.isoweekday()
+    if int(today) == 7:
+        sunday = True
+        today = 1
+    week = '2'
+    group = 'M3110'
+    try:
+        a, group = message.text.split()
+    except:
+        pass
+    web_page = get_page(group, week)
+    times_lst, locations_lst, lessons_lst = get_schedule(web_page,today)
+    hour = my_time[0:2]
+    if hour[0] == '0':
+        hour = int(hour[1])
+    minn = my_time[3:5]
+    if minn[0] == '0':
+        minn = int(minn[1])
+    for i in range(0, len(times_lst) + 1):
+        #print(int(str(times_lst[i])[0:2]),int(hour))
+        try:
+            if int(str(times_lst[i])[0:2]) > int(hour):
+                # print('>')
+                break
+            if int(str(times_lst[i])[0:2]) == int(hour):
+                if int(str(times_lst[i])[3:5]) > int(minn):
+                    # print('=')
+                    break
+        except:
+            if sunday:
+                a = 0
+                # print('true')
+            else:
+                a = 1
+                # print('false')
+            i = 0
+            times_lst, locations_lst, lessons_lst = get_schedule(web_page,int(today) + a)
+            break
+    resp = '<b>{}</b>, {}, {}\n'.format(times_lst[i], locations_lst[i],  lessons_lst[i])
+
+    bot.send_message(message.chat.id, resp, parse_mode='HTML')
+
+
+if __name__ == '__main__':
+    bot.polling(none_stop=True)
